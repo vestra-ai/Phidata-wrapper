@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Flask Firebase App</title>
+</head>
+<body>
+    <h1>Flask Firebase App</h1>
+    <div id="data-container">
+        <!-- Data will be displayed here -->
+    </div>
+
+    <script>
+        // Fetch and display data
+        fetch('/get_data')
+            .then(response => response.json())
+            .then(data => {
+                const container = document.getElementById('data-container');
+                container.innerHTML = JSON.stringify(data, null, 2);
+            })
+            .catch(error => console.error('Error:', error));
+    </script>
+</body>
+</html>
