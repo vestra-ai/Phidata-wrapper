@@ -21,12 +21,8 @@ def jwt_required(f):
             return jsonify({'message': 'Token is missing'}), 401
 
         try:
-            print(token)
-            print(SECRET_KEY)
             payload = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
-            print(payload)
             user_id=payload['sub']['user_id']
-            print(user_id)
             if not user_id:
                 return jsonify({'message': 'user id not found'}), 401
     
