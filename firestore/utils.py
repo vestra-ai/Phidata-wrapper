@@ -14,6 +14,7 @@ def create_agent(user_id, agent_data):
     agent_data['user_id'] = user_id
     agent_data['created_at'] = datetime.now(UTC).isoformat()
     agent_ref = db.collection('custom_agents').document()
+    agent_data["agent_id"] = agent_ref.id
     agent_ref.set(agent_data)
     return jsonify({"message": "Agent created successfully", "agent_id": agent_ref.id}), 201
 

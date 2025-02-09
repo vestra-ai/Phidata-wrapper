@@ -87,7 +87,7 @@ def run_agent_by_id():
             return jsonify(agent_response), status_code
 
         agent_data = agent_response.get_json()
-
+        agent_data['agent_id'] = agent_id
         # Run the agent with the config
         multi_agent = MultiAgent(agent_data)
         result = multi_agent.run(user_input)
