@@ -16,16 +16,3 @@ def initialize_firebase():
         # If the named app doesn't exist but other apps do
         cred = credentials.Certificate('./serviceAccountKey.json')
         return firebase_admin.initialize_app(cred, name='vestra-app')
-
-# Add this constant
-# JWT_SECRET_KEY = 'your-secret-key'  # Replace with a secure secret key in production
-
-# firebaseConfig = {
-#   "apiKey": "AIzaSyBJe8Jy7CTqekypGTz0-NJUQ2T2LyPXCt8",
-#   "authDomain": "project-vestra.firebaseapp.com",
-#   "databaseURL": "https://project-vestra-default-rtdb.firebaseio.com",
-#   "projectId": "project-vestra",
-#   "storageBucket": "project-vestra.appspot.com",
-#   "messagingSenderId": "659580688135",
-#   "appId": "1:659580688135:web:fdfde531145b7287a2d7a2"
-# }
