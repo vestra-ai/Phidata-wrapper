@@ -16,6 +16,10 @@ app.register_blueprint(agents_bp, url_prefix='/agents')
 @app.route('/')
 def index():
     return render_template('index.html')
+
+@app.route('/health')
+def health():
+    return jsonify({"status": "UP"})
  
 if __name__ == '__main__':
     app.run(debug=True)
