@@ -87,13 +87,16 @@ def market_indicies_data():
             change: float = Field(..., description="Change in the index value.")
             change_percent: str = Field(..., description="Percentage change in the index.")
 
+        class MarketIndicesList(BaseModel):
+            indices: list[USMarketIndex]            
+
         Crawller = CrawlScraper()
         instruction = """From the crawled content, extract only the following US market indices and their respective details:
                         - Dow Jones Industrial Average
                         - NASDAQ Composite Index
                         - S&P 500 Index
                         Extract the Name, Last recorded value, Change, and Percentage Change accurately."""
-        result = Crawller.run("https://www.slickcharts.com/sp500", USMarketIndex, instruction)
+        result = Crawller.run("https://www.slickcharts.com/sp500", MarketIndicesList, instruction)
         result = json.loads(result) if isinstance(result, str) else result
         indices = []
         if isinstance(result, list):
@@ -136,57 +139,57 @@ def analyst_stock_forecast(ticker: str):
             dict: Structured JSON with price targets, analyst ratings, financial forecasts, 
                   revenue projections, and EPS estimates.
         """
+        class PriceTargets(BaseModel):
+            low: float = Field(..., description="Lowest price target.")
+            average: float = Field(..., description="Average price target.")
+            median: float = Field(..., description="Median price target.")
+            high: float = Field(..., description="Highest price target.")
+            low_change: str = Field(..., description="Percentage change for the lowest target.")
+            average_change: str = Field(..., description="Percentage change for the average target.")
+            median_change: str = Field(..., description="Percentage change for the median target.")
+            high_change: str = Field(..., description="Percentage change for the highest target.")
+
+        class MonthlyRatings(BaseModel):
+            month: str = Field(..., description="Month and year of the rating (e.g., Oct '24).")
+            strong_buy: int = Field(..., description="Number of Strong Buy ratings.")
+            buy: int = Field(..., description="Number of Buy ratings.")
+            hold: int = Field(..., description="Number of Hold ratings.")
+            sell: int = Field(..., description="Number of Sell ratings.")
+            strong_sell: int = Field(..., description="Number of Strong Sell ratings.")
+            total_analysts: int = Field(..., description="Total number of analysts providing ratings.")
+
+        class AnalystRatings(BaseModel):
+            current_analyst_consensus: str = Field(..., description="Overall latest analyst consensus (e.g., Buy, Hold, Sell).")
+            months: list[MonthlyRatings]
+
+        class FinancialForecast(BaseModel):
+            revenue_this_year: float = Field(..., description="Revenue forecast for this year.")
+            revenue_next_year: float = Field(..., description="Revenue forecast for next year.")
+            revenue_growth_this_year: float = Field(..., description="Percentage change in revenue this year.")
+            revenue_growth_next_year: float = Field(..., description="Percentage change in revenue next year.")
+            eps_this_year: float = Field(..., description="Earnings per share (EPS) forecast for this year.")
+            eps_next_year: float = Field(..., description="Earnings per share (EPS) forecast for next year.")
+            eps_growth_this_year: float = Field(..., description="Percentage change in EPS this year.")
+            eps_growth_next_year: float = Field(..., description="Percentage change in EPS next year.")
+            forward_pe: float = Field(..., description="Forward P/E ratio for the stock.")
+
+        class RevenueForecast(BaseModel):
+            revenue_high: dict = Field(..., description="Revenue high estimates for future years.")
+            revenue_avg: dict = Field(..., description="Revenue average estimates for future years.")
+            revenue_low: dict = Field(..., description="Revenue low estimates for future years.")
+            revenue_growth_high: dict = Field(..., description="Revenue growth high estimates for future years.")
+            revenue_growth_avg: dict = Field(..., description="Revenue growth average estimates for future years.")
+            revenue_growth_low: dict = Field(..., description="Revenue growth low estimates for future years.")
+
+        class EPSForecast(BaseModel):
+            eps_high: dict = Field(..., description="EPS high estimates for future years.")
+            eps_avg: dict = Field(..., description="EPS average estimates for future years.")
+            eps_low: dict = Field(..., description="EPS low estimates for future years.")
+            eps_growth_high: dict = Field(..., description="EPS growth high estimates for future years.")
+            eps_growth_avg: dict = Field(..., description="EPS growth average estimates for future years.")
+            eps_growth_low: dict = Field(..., description="EPS growth low estimates for future years.")
+            
         class StockForecast(BaseModel):
-            class PriceTargets(BaseModel):
-                low: float = Field(..., description="Lowest price target.")
-                average: float = Field(..., description="Average price target.")
-                median: float = Field(..., description="Median price target.")
-                high: float = Field(..., description="Highest price target.")
-                low_change: str = Field(..., description="Percentage change for the lowest target.")
-                average_change: str = Field(..., description="Percentage change for the average target.")
-                median_change: str = Field(..., description="Percentage change for the median target.")
-                high_change: str = Field(..., description="Percentage change for the highest target.")
-
-            class AnalystRatings(BaseModel):
-                current_analyst_consensus: str = Field(..., description="Overall latest analyst consensus (e.g., Buy, Hold, Sell).")
-                months: list = Field(..., description="List of monthly analyst ratings for the past 6 months.")
-
-                class MonthlyRatings(BaseModel):
-                    month: str = Field(..., description="Month and year of the rating (e.g., Oct '24).")
-                    strong_buy: int = Field(..., description="Number of Strong Buy ratings.")
-                    buy: int = Field(..., description="Number of Buy ratings.")
-                    hold: int = Field(..., description="Number of Hold ratings.")
-                    sell: int = Field(..., description="Number of Sell ratings.")
-                    strong_sell: int = Field(..., description="Number of Strong Sell ratings.")
-                    total_analysts: int = Field(..., description="Total number of analysts providing ratings.")
-
-            class FinancialForecast(BaseModel):
-                revenue_this_year: float = Field(..., description="Revenue forecast for this year.")
-                revenue_next_year: float = Field(..., description="Revenue forecast for next year.")
-                revenue_growth_this_year: float = Field(..., description="Percentage change in revenue this year.")
-                revenue_growth_next_year: float = Field(..., description="Percentage change in revenue next year.")
-                eps_this_year: float = Field(..., description="Earnings per share (EPS) forecast for this year.")
-                eps_next_year: float = Field(..., description="Earnings per share (EPS) forecast for next year.")
-                eps_growth_this_year: float = Field(..., description="Percentage change in EPS this year.")
-                eps_growth_next_year: float = Field(..., description="Percentage change in EPS next year.")
-                forward_pe: float = Field(..., description="Forward P/E ratio for the stock.")
-
-            class RevenueForecast(BaseModel):
-                revenue_high: dict = Field(..., description="Revenue high estimates for future years.")
-                revenue_avg: dict = Field(..., description="Revenue average estimates for future years.")
-                revenue_low: dict = Field(..., description="Revenue low estimates for future years.")
-                revenue_growth_high: dict = Field(..., description="Revenue growth high estimates for future years.")
-                revenue_growth_avg: dict = Field(..., description="Revenue growth average estimates for future years.")
-                revenue_growth_low: dict = Field(..., description="Revenue growth low estimates for future years.")
-
-            class EPSForecast(BaseModel):
-                eps_high: dict = Field(..., description="EPS high estimates for future years.")
-                eps_avg: dict = Field(..., description="EPS average estimates for future years.")
-                eps_low: dict = Field(..., description="EPS low estimates for future years.")
-                eps_growth_high: dict = Field(..., description="EPS growth high estimates for future years.")
-                eps_growth_avg: dict = Field(..., description="EPS growth average estimates for future years.")
-                eps_growth_low: dict = Field(..., description="EPS growth low estimates for future years.")
-
             price_targets: PriceTargets
             analyst_ratings: AnalystRatings
             financial_forecast: FinancialForecast
@@ -207,7 +210,7 @@ def analyst_stock_forecast(ticker: str):
         - Total analysts.
 
         **3. Financial Forecast**:
-        - Revenue this year and next year with percentage growth.
+        - Revenue this year and next year with percentage growth from last year to this year and percentage growth from this year to next year.
         - EPS this year and next year with percentage growth.
         - Forward P/E ratio.
 
@@ -221,7 +224,6 @@ def analyst_stock_forecast(ticker: str):
 
         Ensure the data is accurately extracted and structured properly."""
 
-        # Run scraper and parse JSON properly
         result = Crawller.run(url, StockForecast, instruction)
 
         # Ensure proper JSON structure
@@ -374,33 +376,33 @@ def cot_report():
     Returns:
         dict: { "cot_insights": <string or None> }
     """
+    # --- COT Report Pydantic Models (top-level) ---
+    class LegacyFutures(BaseModel):
+        open_interest: int = Field(..., description="Total open interest for the asset.")
+        change_in_open_interest: int = Field(..., description="Change in open interest.")
+        non_commercial_long: int = Field(..., description="Non-commercial traders holding long positions.")
+        non_commercial_short: int = Field(..., description="Non-commercial traders holding short positions.")
+        commercial_long: int = Field(..., description="Commercial traders holding long positions.")
+        commercial_short: int = Field(..., description="Commercial traders holding short positions.")
+        total_long: int = Field(..., description="Total long positions (Commercial + Non-Commercial).")
+        total_short: int = Field(..., description="Total short positions (Commercial + Non-Commercial).")
+        non_reportable_long: int = Field(..., description="Non-reportable traders' long positions.")
+        non_reportable_short: int = Field(..., description="Non-reportable traders' short positions.")
+        percent_open_interest: dict = Field(..., description="Percentage of open interest by category.")
+        traders_count: dict = Field(..., description="Number of traders in each category.")
 
-    class COTReport(BaseModel):
-        class LegacyFutures(BaseModel):
-            open_interest: int = Field(..., description="Total open interest for the asset.")
-            change_in_open_interest: int = Field(..., description="Change in open interest.")
-            non_commercial_long: int = Field(..., description="Non-commercial traders holding long positions.")
-            non_commercial_short: int = Field(..., description="Non-commercial traders holding short positions.")
-            commercial_long: int = Field(..., description="Commercial traders holding long positions.")
-            commercial_short: int = Field(..., description="Commercial traders holding short positions.")
-            total_long: int = Field(..., description="Total long positions (Commercial + Non-Commercial).")
-            total_short: int = Field(..., description="Total short positions (Commercial + Non-Commercial).")
-            non_reportable_long: int = Field(..., description="Non-reportable traders' long positions.")
-            non_reportable_short: int = Field(..., description="Non-reportable traders' short positions.")
-            percent_open_interest: dict = Field(..., description="Percentage of open interest by category.")
-            traders_count: dict = Field(..., description="Number of traders in each category.")
+    class COTMarketBulls(BaseModel):
+        date: str = Field(..., description="Date of the COT report.")
+        commercial_long: int = Field(..., description="Long positions held by commercial traders.")
+        commercial_short: int = Field(..., description="Short positions held by commercial traders.")
+        large_speculators_long: int = Field(..., description="Long positions held by large speculators.")
+        large_speculators_short: int = Field(..., description="Short positions held by large speculators.")
+        small_traders_long: int = Field(..., description="Long positions held by small traders.")
+        small_traders_short: int = Field(..., description="Short positions held by small traders.")
+        net_positions: int = Field(..., description="Net positions (Long - Short).")
+        percent_open_interest: dict = Field(..., description="Percentage of open interest by category.")
+        trader_sentiment: dict = Field(..., description="Trader sentiment for different trader categories.")
 
-        class COTMarketBulls(BaseModel):
-            date: str = Field(..., description="Date of the COT report.")
-            commercial_long: int = Field(..., description="Long positions held by commercial traders.")
-            commercial_short: int = Field(..., description="Short positions held by commercial traders.")
-            large_speculators_long: int = Field(..., description="Long positions held by large speculators.")
-            large_speculators_short: int = Field(..., description="Short positions held by large speculators.")
-            small_traders_long: int = Field(..., description="Long positions held by small traders.")
-            small_traders_short: int = Field(..., description="Short positions held by small traders.")
-            net_positions: int = Field(..., description="Net positions (Long - Short).")
-            percent_open_interest: dict = Field(..., description="Percentage of open interest by category.")
-            trader_sentiment: dict = Field(..., description="Trader sentiment for different trader categories.")
 
     Crawller = CrawlScraper()
 
@@ -421,11 +423,22 @@ def cot_report():
     """
 
     try:
-        result_tradingster = Crawller.run(tradingster_url, COTReport.LegacyFutures, instruction_tradingster)
-        result_market_bulls = Crawller.run(market_bulls_url, COTReport.COTMarketBulls, instruction_market_bulls)
-
-        tradingster = json.loads(result_tradingster) if isinstance(result_tradingster, str) else result_tradingster
-        market_bulls = json.loads(result_market_bulls) if isinstance(result_market_bulls, str) else result_market_bulls
+        result_tradingster = Crawller.run(tradingster_url, LegacyFutures, instruction_tradingster)
+        print(f"COT Tradingster Data (raw): {result_tradingster}")
+        if isinstance(result_tradingster, list):
+            if len(result_tradingster) > 0 and isinstance(result_tradingster[0], dict):
+                result_tradingster = result_tradingster[0]
+            else:
+                result_tradingster = {}
+        result_market_bulls = Crawller.run(market_bulls_url, COTMarketBulls, instruction_market_bulls)
+        print(f"COT Market Bulls Data (raw): {result_market_bulls}")
+        if isinstance(result_market_bulls, list):
+            if len(result_market_bulls) > 0 and isinstance(result_market_bulls[0], dict):
+                result_market_bulls = result_market_bulls[0]
+            else:
+                result_market_bulls = {}
+        tradingster = result_tradingster
+        market_bulls = result_market_bulls
         cot_data = {
             "tradingster_cot_report": tradingster,
             "market_bulls_cot_report": market_bulls
@@ -531,13 +544,15 @@ def put_call_ratios(ticker: str):
 
     # Run scraper and process JSON output
     result = Crawller.run(url, OptionChainData, instruction)
-    structured_result = json.loads(result) if isinstance(result, str) else result
-
-    if isinstance(structured_result, list):
-        if len(structured_result) > 0:
-            structured_result = structured_result[0]
+    print(f"Put/Call Ratios Data (raw): {result}")
+    # Fallback: if result is a list, take the first dict or build a dict
+    if isinstance(result, list):
+        if len(result) > 0 and isinstance(result[0], dict):
+            result = result[0]
         else:
-            return {"put_call_ratio": None, "put_call_ratio_insights": None}
+            result = {}
+    structured_result = result
+
     # Prepare output with error handling
     output = {}
     try:
@@ -606,6 +621,9 @@ def analyze_stock_sentiment(ticker: str):
         sentiment: str
         source: str
         url: str
+
+    class NewsSentimentList(BaseModel):
+        articles: list[NewsSentiment]
 
     google_news_url = f"https://news.google.com/search?q={ticker}"
     instruction_news = """Extract stock-related news articles:
@@ -923,7 +941,7 @@ def pe_ratios(ticker: str, sector: str = None):
     # Extract values with error handling
     def safe_get(d, k):
         try:
-            return d[k]
+            return d.get(k, None) if d else None
         except Exception:
             return None
 
@@ -1034,12 +1052,23 @@ def debt_equity_ratio(statement: dict, company_profile: dict):
     
     Crawller = CrawlScraper()
     industry_de_ratio_data = Crawller.run(full_ratio_url, IndustryDebtEquityData, instruction)
-    industry_de_ratio_data=json.loads(industry_de_ratio_data) if isinstance(industry_de_ratio_data,str) else industry_de_ratio_data
-    industry_de_ratio_data=industry_de_ratio_data[0]
+    industry_de_ratio_data = json.loads(industry_de_ratio_data) if isinstance(industry_de_ratio_data, str) else industry_de_ratio_data
+    if isinstance(industry_de_ratio_data, list):
+        industry_de_ratio_data = industry_de_ratio_data[0] if industry_de_ratio_data else {}
+    elif not isinstance(industry_de_ratio_data, dict):
+        industry_de_ratio_data = {}
 
     # **STEP 4: COMPARE STOCK VS. INDUSTRY D/E RATIO**
-    industry_de_ratio = industry_de_ratio_data["avg_debt_equity_ratio"]
+    industry_de_ratio = industry_de_ratio_data.get("avg_debt_equity_ratio", None)
 
+    if industry_de_ratio is None:
+        comparison = {
+            "Industry Name": industry,
+            "Stock Debt-to-Equity Ratio": stock_de_ratio,
+            "Industry Average D/E Ratio": None,
+            "Leverage Analysis": None,
+            "Risk Assessment": None
+        }
     comparison = {
         "Industry Name": industry,
         "Stock Debt-to-Equity Ratio": stock_de_ratio,
