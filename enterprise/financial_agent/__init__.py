@@ -130,7 +130,7 @@ def stock_report():
             ai_overview = ai_overview_future.result()
         report["slide_6"] = {"ai_risks": ai_risks}
         report["slide_1"]["ai_overview"] = ai_overview
-        response = {"status": "success", "data": report}
+        response = {"success": True, "data": report}
         if errors:
             response["errors"] = errors
             return jsonify(response), 200
@@ -140,14 +140,22 @@ def stock_report():
 
 @stock_bp.route('/try', methods=['GET'])
 def try_route():
-    from enterprise.financial_agent.tools.helper_fns.allFns import piotroski_score
+    from enterprise.financial_agent.tools.helper_fns.allFns import (
+        analyze_stock_sentiment, market_indicies_data, cot_report
+    )
     ticker = request.args.get('ticker')
     if not ticker:
         return jsonify({"error": "Ticker symbol is required"}), 400
     ticker = ticker.upper()
     
     try:
-        result = piotroski_score(ticker)
-        return jsonify({"piotroski_score": result})
+        sentiment = analyze_stock_sentiment(ticker)
+        # market_indices = market_indicies_data()
+        # cot = cot_report()
+        return jsonify({
+            "sentiment": sentiment,
+            # "market_indices": market_indices,
+            # "cot_report": cot
+        })
     except Exception as e:
         return jsonify({"error": str(e)}), 500

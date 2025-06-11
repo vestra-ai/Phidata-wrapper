@@ -96,7 +96,7 @@ def market_indicies_data():
                         - NASDAQ Composite Index
                         - S&P 500 Index
                         Extract the Name, Last recorded value, Change, and Percentage Change accurately."""
-        result = Crawller.run("https://www.slickcharts.com/sp500", MarketIndicesList, instruction)
+        result = Crawller.run("https://www.slickcharts.com/sp500", MarketIndicesList, instruction, markdown=True)
         result = json.loads(result) if isinstance(result, str) else result
         indices = []
         if isinstance(result, list):
@@ -224,7 +224,7 @@ def analyst_stock_forecast(ticker: str):
 
         Ensure the data is accurately extracted and structured properly."""
 
-        result = Crawller.run(url, StockForecast, instruction)
+        result = Crawller.run(url, StockForecast, instruction, markdown=True)
 
         # Ensure proper JSON structure
         structured_result = json.loads(result) if isinstance(result, str) else result
@@ -430,7 +430,7 @@ def cot_report():
                 result_tradingster = result_tradingster[0]
             else:
                 result_tradingster = {}
-        result_market_bulls = Crawller.run(market_bulls_url, COTMarketBulls, instruction_market_bulls)
+        result_market_bulls = Crawller.run(market_bulls_url, COTMarketBulls, instruction_market_bulls, markdown=True)
         print(f"COT Market Bulls Data (raw): {result_market_bulls}")
         if isinstance(result_market_bulls, list):
             if len(result_market_bulls) > 0 and isinstance(result_market_bulls[0], dict):
@@ -616,11 +616,11 @@ def analyze_stock_sentiment(ticker: str):
 
     # News Sentiment
     class NewsSentiment(BaseModel):
-        title: str
-        summary: str
-        sentiment: str
-        source: str
-        url: str
+        title: str = Field(..., description="Title of the news article.")
+        summary: str = Field(..., description="Summary of the news article.")
+        sentiment: str = Field(..., description="Sentiment classification (Positive, Neutral, Negative).")
+        source: str = Field(..., description="Source of the news article (e.g., CNBC, Bloomberg).")
+        url: str = Field(..., description="URL of the news article.")
 
     class NewsSentimentList(BaseModel):
         articles: list[NewsSentiment]
@@ -632,7 +632,7 @@ def analyze_stock_sentiment(ticker: str):
     - Source (CNBC, Bloomberg, MarketWatch, etc.)
     - URL
     - Apply sentiment analysis to classify each article as Positive, Neutral, or Negative."""
-    news_results = Crawller.run(google_news_url, NewsSentiment, instruction_news)
+    news_results = Crawller.run(google_news_url, NewsSentimentList, instruction_news)
     news_results = json.loads(news_results) if isinstance(news_results, str) else news_results
     if not isinstance(news_results, list):
         news_results = [news_results]
@@ -646,11 +646,16 @@ def analyze_stock_sentiment(ticker: str):
     avg_news_sentiment = sum(news_sentiment_scores) / len(news_sentiment_scores) if news_sentiment_scores else 0
 
     # Investor Sentiment Tracking
+    class Monthly_Trends_Dict(BaseModel):
+        score: int
+        month: str
+        change: int
+
     class SentimentTracking(BaseModel):
         sentiment_score: int
         sentiment_status: str
         industry_percentile: int
-        monthly_trends: list
+        monthly_trends: list[Monthly_Trends_Dict]
 
     sentiment_tracking_url = f"https://altindex.com/ticker/{ticker}/sentiment"
     instruction_sentiment = """Extract the following investor sentiment data:
