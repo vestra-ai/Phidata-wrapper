@@ -1,51 +1,121 @@
-import asyncio
-from crawl4ai import AsyncWebCrawler, BrowserConfig, CrawlerRunConfig, CacheMode
 import os
-import asyncio
-from pydantic import BaseModel, Field
-from crawl4ai import AsyncWebCrawler, CrawlerRunConfig, LLMConfig
-from crawl4ai.extraction_strategy import LLMExtractionStrategy
+from firecrawl import FirecrawlApp, JsonConfig
+from pydantic import BaseModel
+
+from enterprise.financial_agent.tools.gpt import GPTAnalysisEngine
 
 class CrawlScraper:
-    def __init__(self, provider: str="openai/gpt-4o", api_token: str =os.getenv("OPENAI_API_KEY"), extra_headers: dict[str, str] = None):
-            self.provider = provider
-            self.api_token = api_token 
-            self.extra_headers = extra_headers
+    def __init__(self, api_key: str = os.getenv("FIRECRAWL_API_KEY"), extra_headers: dict[str, str] = None):
+        self.api_key = api_key
+        self.extra_headers = extra_headers
+        self.app = FirecrawlApp(api_key=self.api_key)
+    
+    def format_json_with_schema(self, json_data: dict, schema: dict, markdown: str|None = None) -> dict:
+        """
+        Format the JSON data according to the provided schema.
+        """
+        import json
 
-    async def scrape(self, url: str, schema: dict, instruction: str):
-            if self.api_token is None and self.provider != "ollama":
-                raise ValueError(f"API token is required for {self.provider}.")
+        prompt = (
+            "You are an expert data formatter and validator. "
+            "Your task is to take the provided JSON data and transform it so that it strictly matches the given schema. "
+            "You may also use the provided markdown content as a reference to collect any missing or necessary data. "
+            "Ensure that:\n"
+            "- All required fields in the schema are present in the output.\n"
+            "- The data types of each field match the schema (e.g., string, integer, boolean, array, object).\n"
+            "- If a field is missing in the input but required by the schema, try to extract it from the markdown content if possible, otherwise fill it with null if appropriate.\n"
+            "- Remove any fields from the input data that are not defined in the schema.\n"
+            "- If the schema specifies nested objects or arrays, ensure the structure and types are correct.\n"
+            "- Do not include any explanations or extra text, only return the formatted JSON object.\n\n"
+            f"Schema (in JSON Schema format):\n{schema}\n\n"
+            f"Input Data:\n{json_data}\n\n"
+            f"Markdown Content (reference):\n{markdown}\n\n"
+            "Return ONLY the formatted JSON object that matches the schema."
+        )
 
-            browser_config = BrowserConfig(headless=True)
-            extra_args = {"temperature": 0, "top_p": 0.9, "max_tokens": 2000}
-            if self.extra_headers:
-                extra_args["extra_headers"] = self.extra_headers
+        try:
+            gpt_engine = GPTAnalysisEngine()
+            output_data = gpt_engine.generate_analysis(prompt, model="gpt-4.1", output_format="json")
+            output_data = json.loads(output_data)
+            return output_data
+        except Exception as e:
+            print(f"Error formatting JSON with schema: {e}")
+            return json_data
 
-            try:
-                llm_config = LLMConfig(
-                provider=self.provider,
-                api_token=self.api_token
-                )
-                crawler_config = CrawlerRunConfig(
-                cache_mode=CacheMode.BYPASS,
-                word_count_threshold=1,
-                page_timeout=80000,
-                extraction_strategy=LLMExtractionStrategy(
-                    llm_config=llm_config,
-                    schema=schema,
-                    extraction_type="schema",
-                    instruction=instruction,
-                    extra_args=extra_args,
-                ),
-                )
-
-                async with AsyncWebCrawler(config=browser_config) as crawler:
-                    result = await crawler.arun(url=url, config=crawler_config)
-                    return result.extracted_content
-            except Exception as e:
-                print(f"Error configuring or running crawler: {e}")
+    def scrape(self, url: str, schema: dict, instruction: str):
+        json_config = JsonConfig(
+            extractionSchema=schema,
+            mode="llm-extraction",
+            pageOptions={"onlyMainContent": True},
+            prompt=instruction
+        )
+        try:
+            result = self.app.scrape_url(
+                url,
+                formats=["json", "markdown"],
+                json_options=json_config
+            )
+            if result.json:
+                print("Data extracted successfully.")
+                # Pass the extracted JSON and schema to GPT engine for formatting/validation
+                try:
+                    formatted_json = self.format_json_with_schema(result.json, schema, result.markdown)
+                    return formatted_json
+                except Exception as gpt_error:
+                    print(f"GPT engine error: {gpt_error}")
+                    return result.json
+            
+            if result.error:
+                print("Error extracting data:", result.error)
+                if result.json:
+                    return result.json
                 return None
+        except Exception as e:
+            print(f"Error running Firecrawl: {e}")
+            return None
+        
+    def scrape_markdown(self, url: str, schema: dict, instruction: str):
+        """
+        Scrape the URL using markdown format, then extract structured data using GPTAnalysisEngine.
+        """
+        try:
+            result = self.app.scrape_url(
+                url,
+                formats=["markdown"],
+            )
+            if result.markdown:
+                print("Markdown extracted successfully.")
+                prompt = (
+                    "You are an expert data extractor. "
+                    "Given the following markdown content, a JSON schema, and extraction instructions, extract the relevant information from the markdown "
+                    "and return it as a JSON object that strictly matches the schema. "
+                    "Follow the extraction instructions carefully to determine what data to extract. "
+                    "Do not include any explanations or extra text, only return the formatted JSON object.\n\n"
+                    f"Extraction Instructions:\n{instruction}\n\n"
+                    f"Schema (in JSON Schema format):\n{schema}\n\n"
+                    f"Markdown Content:\n{result.markdown}\n\n"
+                    "Return ONLY the formatted JSON object that matches the schema."
+                )
+                try:
+                    gpt_engine = GPTAnalysisEngine()
+                    import json
+                    output_data = gpt_engine.generate_analysis(prompt, output_format="json")
+                    output_data = json.loads(output_data)
+                    return output_data
+                except Exception as gpt_error:
+                    print(f"GPT engine error: {gpt_error}")
+                    return None
+            if result.error:
+                print("Error extracting markdown:", result.error)
+                return None
+        except Exception as e:
+            print(f"Error running Firecrawl (markdown): {e}")
+            return None
 
-    def run(self, url: str, schema_class: BaseModel, instruction: str):
-            schema = schema_class.model_json_schema()
-            return asyncio.run(self.scrape(url, schema, instruction))
+    def run(self, url: str, schema_class: BaseModel, instruction: str, markdown: bool = False):
+        schema = schema_class.model_json_schema()
+        if markdown:
+            return self.scrape_markdown(url, schema, instruction)
+        else:
+            return self.scrape(url, schema, instruction)
+

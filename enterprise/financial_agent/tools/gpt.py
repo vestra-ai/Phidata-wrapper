@@ -51,9 +51,8 @@ class GPTAnalysisEngine:
                 {"role": "user", "content": analysis_prompt}
             ],
             max_tokens=max_tokens,
-            )      
-
-        
+            )
+    
         return response.choices[0].message.content
     
     def _prepare_prompt(self, prompt: str, data: Optional[Dict[str, Any]] = None) -> str:
